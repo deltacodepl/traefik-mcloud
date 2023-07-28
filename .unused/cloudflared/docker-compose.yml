@@ -1,0 +1,19 @@
+version: '3.9'
+
+networks:
+  immich_default:
+    external: true
+  # another_network:
+  #   external: true
+
+services:
+  cloudflaretunnel:
+    container_name: Cloudflaretunnel
+    image: cloudflare/cloudflared:2023.2.1
+    restart: unless-stopped
+    environment:
+      - TUNNEL_TOKEN=$TUNNEL_TOKEN
+    command: tunnel --no-autoupdate run
+    networks:
+      - immich_default
+      # - another_network

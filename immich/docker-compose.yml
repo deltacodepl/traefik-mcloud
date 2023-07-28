@@ -1,0 +1,187 @@
+version: "3.8"
+
+networks:
+  proxy:
+    external: true
+  immich:
+
+services:
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    command: ["start.sh", "immich"]
+    volumes:
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
+      # - ${READ_ONLY_GALLERY_LOCATION_1}:${READ_ONLY_GALLERY_LOCATION_1}
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - database
+      - typesense
+    restart: always
+    networks:
+      - proxy
+      - immich
+    labels:
+      traefik.enable: true
+      traefik.http.routers.immich-api-router.entrypoints: https
+      traefik.http.routers.immich-api-router.rule: "Host(`$IMMICH_URL`) && Pathprefix(`/api`)"
+      traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
+      traefik.http.routers.immich-api-router.priority: 20
+      traefik.http.routers.immich-api-router.middlewares: immich_api_secure_headers,immich_api_strip,immich_limit
+      traefik.http.services.immich-api-service.loadbalancer.server.port: "3001"
+
+      # body limit middleware
+      traefik.http.middlewares.immich_limit.buffering.maxRequestBodyBytes: 10000000000
+      traefik.http.middlewares.immich_limit.buffering.maxResponseBodyBytes: 10000000000
+      traefik.http.middlewares.immich_limit.buffering.memRequestBodyBytes: 10000000000
+      traefik.http.middlewares.immich_limit.buffering.memResponseBodyBytes: 10000000000
+      traefik.http.middlewares.immich_limit.buffering.retryExpression: IsNetworkError() && Attempts() < 2
+
+      # immich_api_strip middleware
+      traefik.http.middlewares.immich_api_strip.stripprefix.prefixes: "/api"
+
+      # immich_api_secure_headers middleware
+      traefik.http.middlewares.immich_api_secure_headers.headers.accessControlAllowMethods: "GET, OPTIONS, PUT"
+      traefik.http.middlewares.immich_api_secure_headers.headers.accessControlMaxAge: 100
+      traefik.http.middlewares.immich_api_secure_headers.headers.hostsProxyHeaders: "X-Forwarded-Host"
+      # traefik.http.middlewares.immich_api_secure_headers.headers.sslRedirect: true  #replaced with middlewares-https-redirectscheme for v2.5.x
+      traefik.http.middlewares.immich_api_secure_headers.headers.stsSeconds: 63072000
+      traefik.http.middlewares.immich_api_secure_headers.headers.stsIncludeSubdomains: true
+      traefik.http.middlewares.immich_api_secure_headers.headers.stsPreload: true
+      traefik.http.middlewares.immich_api_secure_headers.headers.forceSTSHeader: true
+      # traefik.http.middlewares.immich_api_secure_headers.headers.frameDeny: true #overwritten by customFrameOptionsValue
+      traefik.http.middlewares.immich_api_secure_headers.headers.customFrameOptionsValue: "SAMEORIGIN" #CSP takes care of this but may be needed for organizr.
+      traefik.http.middlewares.immich_api_secure_headers.headers.contentTypeNosniff: true
+      traefik.http.middlewares.immich_api_secure_headers.headers.browserXssFilter: true
+      # traefik.http.middlewares.immich_api_secure_headers.headers.sslForceHost: true # add sslHost to all of the services
+      # traefik.http.middlewares.immich_api_secure_headers.headers.sslHost: "{{env "DOMAINNAME_SHB"}}"
+      traefik.http.middlewares.immich_api_secure_headers.headers.referrerPolicy: "same-origin"
+
+  immich-web:
+    container_name: immich_web
+    image: ghcr.io/immich-app/immich-web:${IMMICH_VERSION:-release}
+    env_file:
+      - .env
+    restart: always
+    networks:
+      - proxy
+      - immich
+    labels:
+      traefik.enable: true
+      traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
+      traefik.http.routers.immich-router.entrypoints: https
+      traefik.http.routers.immich-router.rule: "Host(`$IMMICH_URL`)"
+      traefik.http.routers.immich-router.middlewares: immich_web_secure_headers
+      traefik.http.routers.immich-router.priority: 10
+      traefik.http.services.immich-service.loadbalancer.server.port: "3000"
+
+      # immich_web_secure_headers middleware
+      traefik.http.middlewares.immich_web_secure_headers.headers.accessControlAllowMethods: "GET, OPTIONS"
+      traefik.http.middlewares.immich_web_secure_headers.headers.accessControlMaxAge: 100
+      traefik.http.middlewares.immich_web_secure_headers.headers.hostsProxyHeaders: "X-Forwarded-Host"
+      # traefik.http.middlewares.immich_web_secure_headers.headers.sslRedirect: true  #replaced with middlewares-https-redirectscheme for v2.5.x
+      traefik.http.middlewares.immich_web_secure_headers.headers.stsSeconds: 63072000
+      traefik.http.middlewares.immich_web_secure_headers.headers.stsIncludeSubdomains: true
+      traefik.http.middlewares.immich_web_secure_headers.headers.stsPreload: true
+      traefik.http.middlewares.immich_web_secure_headers.headers.forceSTSHeader: true
+      # traefik.http.middlewares.immich_web_secure_headers.headers.frameDeny: true #overwritten by customFrameOptionsValue
+      traefik.http.middlewares.immich_web_secure_headers.headers.customFrameOptionsValue: "SAMEORIGIN" #CSP takes care of this but may be needed for organizr.
+      traefik.http.middlewares.immich_web_secure_headers.headers.contentTypeNosniff: true
+      traefik.http.middlewares.immich_web_secure_headers.headers.browserXssFilter: true
+      # traefik.http.middlewares.immich_web_secure_headers.headers.sslForceHost: true # add sslHost to all of the services
+      # traefik.http.middlewares.immich_web_secure_headers.headers.sslHost: "{{env "DOMAINNAME_SHB"}}"
+      traefik.http.middlewares.immich_web_secure_headers.headers.referrerPolicy: "same-origin"
+      traefik.http.middlewares.immich_web_secure_headers.headers.permissionsPolicy: "camera=(), microphone=(), geolocation=(), vr=()"
+
+  immich-microservices:
+    container_name: immich_microservices
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    command: ["start.sh", "microservices"]
+    volumes:
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
+      # - ${READ_ONLY_GALLERY_LOCATION_1}:${READ_ONLY_GALLERY_LOCATION_1}
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - database
+      - typesense
+    restart: always
+    networks:
+      - immich
+
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    volumes:
+      - model-cache:/cache
+    env_file:
+      - .env
+    restart: always
+    networks:
+      - immich
+
+  typesense:
+    container_name: immich_typesense
+    image: typesense/typesense:0.24.1@sha256:9bcff2b829f12074426ca044b56160ca9d777a0c488303469143dd9f8259d4dd
+    environment:
+      - TYPESENSE_API_KEY=${TYPESENSE_API_KEY}
+      - TYPESENSE_DATA_DIR=/data
+    logging:
+      driver: none
+    volumes:
+      - tsdata:/data
+    restart: always
+    networks:
+      - immich
+
+  redis:
+    container_name: immich_redis
+    image: redis:6.2-alpine@sha256:70a7a5b641117670beae0d80658430853896b5ef269ccf00d1827427e3263fa3
+    restart: always
+    volumes:
+      - ./volumes/immich/redis.conf:/etc/redis.conf
+      - /etc/TZ:/etc/timezone:ro
+      - ./volumes/immich/redisdb:/db
+    networks:
+      - immich
+
+  database:
+    container_name: immich_postgres
+    image: postgres:14-alpine@sha256:28407a9961e76f2d285dc6991e8e48893503cc3836a4755bbc2d40bcc272a441
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+      PG_DATA: /var/lib/postgresql/data
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - immich
+
+  # Use Traefik for external access
+  # immich-proxy:
+  #   container_name: immich_proxy
+  #   image: ghcr.io/immich-app/immich-proxy:${IMMICH_VERSION:-release}
+  #   environment:
+  #     # Make sure these values get passed through from the env file
+  #     - IMMICH_SERVER_URL
+  #     - IMMICH_WEB_URL
+  #   ports:
+  #     - 2283:8080
+  #   depends_on:
+  #     - immich-server
+  #     - immich-web
+  #   restart: always
+  #   networks:
+  #     - immich
+
+volumes:
+  pgdata:
+  model-cache:
+  tsdata:

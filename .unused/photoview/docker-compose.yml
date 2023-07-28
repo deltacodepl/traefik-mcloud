@@ -1,0 +1,64 @@
+version: "3"
+
+networks:
+  proxy:
+    external: true
+  photoview:
+
+services:
+  db:
+    image: mariadb:10.5
+    container_name: photoview-db
+    restart: always
+    networks:
+      - photoview
+    environment:
+      - MYSQL_DATABASE=$MYSQL_DATABASE
+      - MYSQL_USER=$MYSQL_USER
+      - MYSQL_PASSWORD=$MYSQL_PASSWORD
+      - MYSQL_RANDOM_ROOT_PASSWORD=$MYSQL_RANDOM_ROOT_PASSWORD
+    volumes:
+      - db_data:/var/lib/mysql
+
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      interval: 1m
+      timeout: 5s
+      retries: 5
+      start_period: 3m
+
+  photoview:
+    image: viktorstrate/photoview:2.3.13
+    container_name: photoview
+    restart: always
+    # ports:
+    #   - "8000:80"
+    depends_on:
+      db:
+        condition: service_started
+    networks:
+      - proxy
+      - photoview
+    environment:
+      - PHOTOVIEW_DATABASE_DRIVER=mysql
+      - PHOTOVIEW_MYSQL_URL=$MYSQL_USER:$MYSQL_PASSWORD@tcp(db)/$MYSQL_DATABASE
+      - PHOTOVIEW_LISTEN_IP=photoview
+      - PHOTOVIEW_LISTEN_PORT=80
+      - PHOTOVIEW_MEDIA_CACHE=/app/cache
+      # Optional: If you are using Samba/CIFS-Share and experience problems with "directory not found"
+      # Enable the following Godebug
+      # - GODEBUG=asyncpreemptoff=1
+      - MAPBOX_TOKEN=$MAPBOX_TOKEN
+    volumes:
+      - api_cache:/app/cache
+      - ${PHOTO_LOCATION_1}:/photos:ro
+    labels:
+      traefik.enable: true
+      traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
+      traefik.http.routers.photoview.rule: Host(`${PHOTOVIEW_URL}`)
+      traefik.http.routers.photoview.entrypoints: websecure
+      traefik.http.routers.photoview.tls.certresolver: letsencrypt
+
+volumes:
+  db_data:
+  api_cache:
