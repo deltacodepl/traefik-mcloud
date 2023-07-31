@@ -164,6 +164,26 @@ services:
     networks:
       - immich
 
+  # Container for backing up the database
+  # https://documentation.immich.app/docs/administration/backup-and-restore
+  backup:
+    container_name: immich_db_dumper
+    image: prodrigestivill/postgres-backup-local
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: database
+      POSTGRES_DB: ${DB_DATABASE_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      SCHEDULE: "@daily"
+      BACKUP_NUM_KEEP: 7
+      BACKUP_DIR: /db_dumps
+    volumes:
+      - ${UPLOAD_LOCATION}/db_dumps:/db_dumps
+    depends_on:
+      - database
+
   # Use Traefik for external access
   # immich-proxy:
   #   container_name: immich_proxy
