@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  gitea:
+    container_name: gitea
+    image: gitea/gitea:1.20
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=POSTGRES_PASSWORD
+      - GITEA__database__PASSWD=POSTGRES_USER
+    restart: always
+    volumes:
+      - ${GITEA_STORAGE_PATH}:/data
+    # ports:
+    #   - 3000:3000
+    #   - 2222:22
+    depends_on:
+      - db
+    networks:
+      - proxy
+      - default
+    labels:
+      traefik.enable: true
+      traefik.http.routers.gitea.entrypoints: https
+      traefik.http.routers.gitea.rule: "Host(`$GITEA_URL`)"
+      traefik.http.services.gitea.loadbalancer.server.port: 3000
+      traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
+
+  db:
+    image: postgres:15.3-alpine3.18
+    restart: always
+    environment:
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_DB=gitea
+    networks:
+      - default
+    volumes:
+      - ${GITEA_DB_PATH}:/var/lib/postgresql/data
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  db_data:
+  git_data:

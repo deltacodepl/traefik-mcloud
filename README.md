@@ -4,7 +4,12 @@
 - Create a new Docker network called `proxy`. `docker network create proxy`
 
 ## Resources
+
+### Containers
 - https://github.com/Haxxnet/Compose-Examples/blob/main/examples/traefik/README.md
+- https://github.com/docker/awesome-compose/tree/master/pihole-cloudflared-DoH
+
+### Articles
 - https://docs.ibracorp.io/traefik/master/docker-compose/config-files-explained
 
 ## Reverse Proxy

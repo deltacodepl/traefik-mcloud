@@ -21,10 +21,10 @@ services:
     networks:
      - proxy
     labels:
-     - traefik.enable=true
-     - traefik.http.routers.onedev.rule=Host(`${ONEDEV_URL}`)
-    #  - traefik.http.services.onedev.loadbalancer.server.port=6610
-     - traefik.docker.network=proxy
+      traefik.enable: true
+      traefik.http.routers.onedev.entrypoints: https
+      traefik.http.routers.onedev.rule: "Host(`$ONEDEV_URL`)"
+      traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
 
 networks:
  proxy:
