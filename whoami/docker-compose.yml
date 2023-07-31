@@ -12,8 +12,7 @@ services:
       traefik.enable: true
       traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
       traefik.http.routers.whoami.rule: Host(`${WHOAMI_URL}`)
-      traefik.http.routers.whoami.entrypoints: websecure
-      traefik.http.routers.whoami.tls.certresolver: letsencrypt
+      traefik.http.routers.whoami.entrypoints: https
     networks:
       - proxy
 
