@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:2.19.0-alpine
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    networks:
+     - proxy
+    # ports:
+    #   - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "portainer_data:/data"
+    labels:
+      traefik.enable: true
+      traefik.http.routers.portainer.rule: "Host(`$PORTAINER_URL`)"
+      traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
+      traefik.http.services.portainer.loadbalancer.server.port: 9000
+      traefik.http.routers.portainer.entrypoints: https
+      traefik.http.routers.portainer.service: portainer
+      # traefik.http.routers.portainer.middlewares: local-ipwhitelist@file
+
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  portainer_data:
