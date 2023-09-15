@@ -25,6 +25,11 @@ services:
       traefik.http.routers.onedev.entrypoints: https
       traefik.http.routers.onedev.rule: "Host(`$ONEDEV_URL`)"
       traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
+      traefik.tcp.routers.onedev-ssh.entrypoints: service-ssh
+      traefik.tcp.routers.onedev-ssh.rule: HostSNI(`*`)
+      traefik.tcp.routers.onedev-ssh.service: onedev-ssh-svc
+      traefik.tcp.services.onedev-ssh-svc.loadbalancer.server.port: 22
+
 
 networks:
  proxy:
