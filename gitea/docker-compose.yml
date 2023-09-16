@@ -4,26 +4,25 @@ services:
   gitea:
     container_name: gitea
     image: gitea/gitea:1.20
-    depends_on:
-      gitea-cache:
-        condition: service_healthy
     environment:
       - APP_NAME="Gitea"
       - USER_UID=1000
       - USER_GID=1000
-      - USER=git
-      - RUN_MODE=prod
-      - DOMAIN=$GITEA_URL
-      - SSH_DOMAIN=$GITEA_URL
-      - HTTP_PORT=3000
-      - ROOT_URL=https://$GITEA_URL
-      - SSH_PORT=222
-      - SSH_LISTEN_PORT=22
-      - DB_TYPE=sqlite3
+
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=$POSTGRES_USER
+      - GITEA__database__PASSWD=$POSTGRES_PASSWORD
+
       - GITEA__cache__ENABLED=true
       - GITEA__cache__ADAPTER=redis
       - GITEA__cache__HOST=redis://gitea-cache:6379/0?pool_size=100&idle_timeout=180s
       - GITEA__cache__ITEM_TTL=24h
+
+      - SSH_PORT=2222
+      - SSH_LISTEN_PORT=22
+      - SSH_DOMAIN=$GITEA_URL
 
     restart: always
     volumes:
@@ -33,6 +32,11 @@ services:
     ports:
       - 3000:3000
       - 222:22
+    depends_on:
+      gitea-db:
+        condition: service_healthy
+      gitea-cache:
+        condition: service_healthy
     networks:
       - proxy
       - default
@@ -45,8 +49,30 @@ services:
       traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
       traefik.http.routers.gitea.entrypoints: https
       traefik.http.routers.gitea.rule: "Host(`$GITEA_URL`)"
-      traefik.http.routers.gitea.service: gitea-service
-      traefik.http.services.gitea-service.loadbalancer.server.port: 3000
+      traefik.http.routers.gitea.service: gitea-web-service
+      traefik.http.services.gitea-web-service.loadbalancer.server.port: 3000
+      traefik.tcp.routers.gitea-ssh.rule: HostSNI(`*`)
+      traefik.tcp.routers.gitea-ssh.entrypoints: ssh
+      traefik.tcp.routers.gitea-ssh.service: gitea-ssh-svc
+      traefik.tcp.services.gitea-ssh-svc.loadbalancer.server.port: 22
+
+  gitea-db:
+    container_name: gitea-db
+    image: postgres:15.3-alpine3.18
+    restart: always
+    environment:
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_DB=gitea
+    networks:
+      - default
+    volumes:
+      - ${GITEA_DB_PATH}:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d gitea -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   gitea-cache:
     container_name: gitea-cache

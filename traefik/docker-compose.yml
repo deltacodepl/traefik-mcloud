@@ -30,7 +30,7 @@ services:
       - --entrypoints.https.http.middlewares=security-headers@file,rate-limit@file # define default middlewares for all proxy entries
       - --api.dashboard=true # enable traefik api dashboard
       - --api.insecure=true # expose traefik api dashboard on TCP/8080 without need for router
-      # - --entrypoints.ssh.address=:222 # entrypoint for service-ssh, use for services like Gitea, Onedev. Use 23 to avoid conflict with ssh port 22
+      - --entrypoints.ssh.address=:2222 # entrypoint for service-ssh, use for services like Gitea, Onedev. Use 23 to avoid conflict with ssh port 22
       # ####################################################
       # # !!! ADJUST TO YOUR INFRASTRUCTURE SETUP BELOW !!!!
       - --entrypoints.https.http.tls.certresolver=cloudflare # define default cert resolver
@@ -54,6 +54,7 @@ services:
     ports:
       - 443:443
       - 80:80
+      - 2222:2222
 
     environment:
       - TZ=Europe/Copenhagen
