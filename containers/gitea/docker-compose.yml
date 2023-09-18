@@ -26,7 +26,8 @@ services:
 
     restart: always
     volumes:
-      - ${GITEA_STORAGE_PATH}:/data
+      - gitea_data:/data
+      - ${GITEA_STORAGE_PATH}:/data/git
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -96,3 +97,4 @@ networks:
 
 volumes:
   db_data:
+  gitea_data:
