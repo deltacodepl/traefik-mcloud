@@ -67,7 +67,7 @@ services:
     networks:
       - default
     volumes:
-      - ${GITEA_DB_PATH}:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -d gitea -U $${POSTGRES_USER}"]
       interval: 10s
@@ -96,4 +96,3 @@ networks:
 
 volumes:
   db_data:
-  git_data:
