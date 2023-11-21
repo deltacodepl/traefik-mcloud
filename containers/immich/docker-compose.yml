@@ -26,10 +26,10 @@ services:
     labels:
       traefik.enable: true
       traefik.http.routers.immich-api-router.entrypoints: https
-      traefik.http.routers.immich-api-router.rule: "Host(`$IMMICH_URL`) && Pathprefix(`/api`)"
+      traefik.http.routers.immich-api-router.rule: "Host(`$IMMICH_URL`)"
       traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
       traefik.http.routers.immich-api-router.priority: 20
-      traefik.http.routers.immich-api-router.middlewares: immich_api_secure_headers,immich_api_strip,immich_limit
+      traefik.http.routers.immich-api-router.middlewares: immich_api_secure_headers,immich_limit
       traefik.http.services.immich-api-service.loadbalancer.server.port: "3001"
 
       # body limit middleware
@@ -38,9 +38,6 @@ services:
       traefik.http.middlewares.immich_limit.buffering.memRequestBodyBytes: 10000000000
       traefik.http.middlewares.immich_limit.buffering.memResponseBodyBytes: 10000000000
       traefik.http.middlewares.immich_limit.buffering.retryExpression: IsNetworkError() && Attempts() < 2
-
-      # immich_api_strip middleware
-      traefik.http.middlewares.immich_api_strip.stripprefix.prefixes: "/api"
 
       # immich_api_secure_headers middleware
       traefik.http.middlewares.immich_api_secure_headers.headers.accessControlAllowMethods: "GET, OPTIONS, PUT"
@@ -58,42 +55,6 @@ services:
       # traefik.http.middlewares.immich_api_secure_headers.headers.sslForceHost: true # add sslHost to all of the services
       # traefik.http.middlewares.immich_api_secure_headers.headers.sslHost: "{{env "DOMAINNAME_SHB"}}"
       traefik.http.middlewares.immich_api_secure_headers.headers.referrerPolicy: "same-origin"
-
-  immich-web:
-    container_name: immich_web
-    image: ghcr.io/immich-app/immich-web:${IMMICH_VERSION:-release}
-    env_file:
-      - .env
-    restart: always
-    networks:
-      - proxy
-      - immich
-    labels:
-      traefik.enable: true
-      traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
-      traefik.http.routers.immich-router.entrypoints: https
-      traefik.http.routers.immich-router.rule: "Host(`$IMMICH_URL`)"
-      traefik.http.routers.immich-router.middlewares: immich_web_secure_headers
-      traefik.http.routers.immich-router.priority: 10
-      traefik.http.services.immich-service.loadbalancer.server.port: "3000"
-
-      # immich_web_secure_headers middleware
-      traefik.http.middlewares.immich_web_secure_headers.headers.accessControlAllowMethods: "GET, OPTIONS"
-      traefik.http.middlewares.immich_web_secure_headers.headers.accessControlMaxAge: 100
-      traefik.http.middlewares.immich_web_secure_headers.headers.hostsProxyHeaders: "X-Forwarded-Host"
-      # traefik.http.middlewares.immich_web_secure_headers.headers.sslRedirect: true  #replaced with middlewares-https-redirectscheme for v2.5.x
-      traefik.http.middlewares.immich_web_secure_headers.headers.stsSeconds: 63072000
-      traefik.http.middlewares.immich_web_secure_headers.headers.stsIncludeSubdomains: true
-      traefik.http.middlewares.immich_web_secure_headers.headers.stsPreload: true
-      traefik.http.middlewares.immich_web_secure_headers.headers.forceSTSHeader: true
-      # traefik.http.middlewares.immich_web_secure_headers.headers.frameDeny: true #overwritten by customFrameOptionsValue
-      traefik.http.middlewares.immich_web_secure_headers.headers.customFrameOptionsValue: "SAMEORIGIN" #CSP takes care of this but may be needed for organizr.
-      traefik.http.middlewares.immich_web_secure_headers.headers.contentTypeNosniff: true
-      traefik.http.middlewares.immich_web_secure_headers.headers.browserXssFilter: true
-      # traefik.http.middlewares.immich_web_secure_headers.headers.sslForceHost: true # add sslHost to all of the services
-      # traefik.http.middlewares.immich_web_secure_headers.headers.sslHost: "{{env "DOMAINNAME_SHB"}}"
-      traefik.http.middlewares.immich_web_secure_headers.headers.referrerPolicy: "same-origin"
-      traefik.http.middlewares.immich_web_secure_headers.headers.permissionsPolicy: "camera=(), microphone=(), geolocation=(), vr=()"
 
   immich-microservices:
     container_name: immich_microservices
@@ -183,23 +144,6 @@ services:
       - ${UPLOAD_LOCATION}/db_dumps:/db_dumps
     depends_on:
       - database
-
-  # Use Traefik for external access
-  # immich-proxy:
-  #   container_name: immich_proxy
-  #   image: ghcr.io/immich-app/immich-proxy:${IMMICH_VERSION:-release}
-  #   environment:
-  #     # Make sure these values get passed through from the env file
-  #     - IMMICH_SERVER_URL
-  #     - IMMICH_WEB_URL
-  #   ports:
-  #     - 2283:8080
-  #   depends_on:
-  #     - immich-server
-  #     - immich-web
-  #   restart: always
-  #   networks:
-  #     - immich
 
 volumes:
   pgdata:
