@@ -1,5 +1,9 @@
 version: '3.8'
 
+networks:
+  proxy:
+    external: true
+
 services:
   linkding:
     container_name: "${LD_CONTAINER_NAME:-linkding}"
@@ -11,3 +15,8 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    labels:
+      traefik.enable: true
+      traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
+      traefik.http.routers.whoami.rule: Host(`${LINKDING_URL}`)
+      traefik.http.routers.whoami.entrypoints: https
