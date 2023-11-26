@@ -133,7 +133,7 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_HOST: database
+      POSTGRES_HOST: ${DB_HOSTNAME}
       POSTGRES_DB: ${DB_DATABASE_NAME}
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
