@@ -18,3 +18,4 @@ services:
       traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
       traefik.http.routers.linkding.rule: Host(`${LINKDING_URL}`)
       traefik.http.routers.linkding.entrypoints: https
+      traefik.http.services.linkding.loadbalancer.server.port: 9000
