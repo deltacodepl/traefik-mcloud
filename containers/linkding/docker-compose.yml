@@ -8,17 +8,19 @@ services:
   linkding:
     container_name: "${LD_CONTAINER_NAME:-linkding}"
     image: sissbruecker/linkding:latest
+    restart: unless-stopped
+    port:
+      - 9090:9090
     networks:
       - proxy
     volumes:
       - "${LD_HOST_DATA_DIR:-./data}:/etc/linkding/data"
     env_file:
       - .env
-    restart: unless-stopped
     labels:
       traefik.enable: true
       traefik.docker.network: proxy # Specify which network to use for traefik, since there are multiple network defined
       traefik.http.routers.linkding.rule: Host(`${LINKDING_URL}`)
       traefik.http.routers.linkding.entrypoints: https
-      # traefik.http.services.linkding.loadbalancer.server.port: 9090
-      # traefik.http.routers.linkding.service: linkding
+      traefik.http.services.linkding.loadbalancer.server.port: 9090
+      traefik.http.routers.linkding.service: linkding
