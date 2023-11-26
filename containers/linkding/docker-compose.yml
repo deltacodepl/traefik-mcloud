@@ -21,3 +21,4 @@ services:
       traefik.http.routers.linkding.rule: Host(`${LINKDING_URL}`)
       traefik.http.routers.linkding.entrypoints: https
       traefik.http.services.linkding.loadbalancer.server.port: 9090
+      traefik.http.routers.linkding.service: linkding
