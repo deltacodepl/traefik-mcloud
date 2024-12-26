@@ -57,7 +57,7 @@ services:
       - 2222:2222
 
     environment:
-      - TZ=Europe/Copenhagen
+      - TZ=Europe/Warsaw
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
       - DOMAIN_NAME=${DOMAIN_NAME}
       - AUTHELIA_URL=${AUTHELIA_URL}

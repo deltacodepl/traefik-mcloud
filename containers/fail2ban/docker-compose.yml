@@ -8,7 +8,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
-      - TZ=Europe/Berlin
+      - TZ=Europe/Warsaw
       - F2B_DB_PURGE_AGE=14d
     network_mode: host
     restart: unless-stopped
